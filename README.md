@@ -5,7 +5,7 @@ This repository consits of two shell scripts.
 
 ### 1. extract
 
-Syntax: ./extract [<options>] <path/to/moodle/installation> [<path/to/pluginfile[.csv]>]
+Syntax: ./extract [ <options> ] <path/to/moodle/installation> [<path/to/pluginfile[.csv]>]
 
 The path to the moodle installation is mandatory.
 
@@ -20,7 +20,7 @@ This script will extract information about all installed plugins from GIT inform
 
 ### 2. build_moodle
 
-Syntax: ./build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile.csv>
+Syntax: ./build_moodle [ <options> ] <path/to/install/moodle> <path/to/pluginfile.csv>
 
 The path to install into is mandatory. If it does not exist it will be created. If the path already contains a Moodle installation the initial Moodle installation is skipped and only the plugins will be installed.
 
