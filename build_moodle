@@ -1,0 +1,239 @@
+#!/usr/bin/env bash
+
+# script to create a Moodle set with all plugins
+# m.opitz@qmul.ac.uk | 2021-04-01
+
+version=210413
+
+#----------------------------------------------------------------------------------------------------------
+#
+# usage: install_moodle <baseuri> [<moodlebranch>]
+#
+# this will install plugin from the given uri. If the optional plugin_path is given it will be used.
+#
+install_moodle () {
+	baseurl=$1
+	moodlebranch=$2
+	here=${PWD}
+
+	if [ -d $baseurl ]
+	then
+		echo "HINT: A (Moodle?) installation '$baseurl' already exists - skipping cloning the Moodle base!"
+	else
+		echo "==> cloning Moodle from GitHub into $baseurl"
+		[ $testing ] || git clone git@github.com:moodle/moodle.git $baseurl
+
+		if [ ! -d $baseurl ]
+			then
+			echo "ERROR: Could not clone Moodle into $baseurl - aborting!"
+			exit 1
+		fi
+		if [ $2 ] # if a branch has been specified check it out
+		then
+			cd $baseurl
+			git checkout $2
+		fi
+		cd $here
+	fi
+}
+
+#----------------------------------------------------------------------------------------------------------
+#
+# usage: install_plugin <plugin_uri> [<plugin_path>] [<branch_name>]
+#
+# this will install plugin from the given uri. If the optional plugin_path is given it will be used.
+# When the optional branch name is given the plugin will be git checked out to that branch
+#
+install_plugin () {
+
+	if [ ! $1 ]
+		then
+		echo 'no plugin repository given to install - aborting!'
+		exit 1
+	fi
+	repository=$1
+
+	if [ ! $2 ]
+		then
+		echo 'no path given to install into - aborting!'
+		exit 1
+	fi
+	plugin_path=$2
+	branch=$3
+	commitid=$4
+
+	here=${PWD}
+	cd $baseurl 
+
+	if [ $force_reinstall ]
+		then
+		if [ -d $plugin_path ]
+			then
+			echo "==> re-installing $plugin_path"
+			[ $testing ] || rm -rf $plugin_path
+		fi
+	fi
+
+	if [ ! -d $plugin_path ] || [ $force_reinstall ]
+	then
+		echo
+		if [ $3 != 'default' ] # there is a specific branch/tag given
+			then
+			if [ $single_repo ] # if the single repo switch is present install plugin as code of one big repository
+				then
+				echo "==> clone repository $repository into $baseurl/$plugin_path with branch $3"
+				git clone $repository $plugin_path -b $3
+				[ $testing ] || rm -rf $plugin_path/.git # removing plugins GIT heritage to make it part of the qmplus repository
+			else
+				echo "==> add submodule $repository into $plugin_path with branch $3"
+				[ $testing ] || git submodule add --force -b $3 $repository $plugin_path
+			fi
+		else
+			if [ $single_repo ]
+				then
+				echo "==> clone repository $repository as $plugin_path"
+				[ $testing ] || git clone $repository $plugin_path
+				[ $testing ] || rm -rf $plugin_path/.git #
+			else
+				echo "==> add submodule $repository as $plugin_path"
+				[ $testing ] || git submodule add --force $repository $plugin_path
+			fi
+
+		fi
+		if [ $commit ] && [ $commitid ]
+		then
+			cd $plugin_path
+			echo "==> Checking out $plugin_path with $commitid"
+			git checkout $commitid > /dev/null
+			cd $baseurl
+			[ $testing ] || git submodule add --force $repository $plugin_path
+		fi
+	fi
+	cd $here
+}
+
+help () {
+	echo
+	echo 'Usage: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>' 
+	echo "Options: -b <branchname> : checkout the given branch after cloning core Moodle"
+	echo
+	exit 0
+}
+
+#=========================================================================================================
+
+# get options
+while getopts :fhstcb: x; do
+    case $x in
+        f)
+            force_reinstall=1
+            ;;
+        h)
+            help
+            ;;
+        s)
+            single_repo=1
+            ;;
+        t)
+            testing=1
+            ;;
+        c)
+            commit=1
+            ;;
+        b)
+            moodlebranch=${OPTARG}
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+
+baseurl=/Users/opitz/workbench/www/btest
+file=test.csv
+#moodlebranch=MOODLE_38_STABLE
+here=${PWD}
+
+
+if [ ! $1 ]
+then
+	echo 'No install path given - aborting!'
+	echo 'Use: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>' 
+	echo
+	exit 1
+fi
+baseurl=$1
+
+if [ ! $2 ]
+then
+	echo 'No plugin file given - aborting!'
+	echo 'Use: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>' 
+	echo
+	exit 1
+fi
+file=$2
+
+if [ ! -f "$file" ]
+then
+	echo "Cannot read plugin file '$file' - aborting!"
+	echo
+	exit 1
+fi
+
+
+echo " "
+echo "Moodle Plugin Installer (v.$version)"
+if [ $moodlebranch ]
+then
+	echo "Install Moodle (branch = $moodlebranch) and all listed plugins from $file into baseurl = $baseurl"
+else
+	echo "Install Moodle (default branch) and all listed plugins from $file into baseurl = $baseurl"
+fi
+echo "---------------------------------------------------------------------------------------------------"
+start_time=`date +%s`
+
+#header=$(head -n 1 $file)
+#echo "header = $header"
+
+if [ $testing ]
+then
+	echo
+	echo "TESTING! NO actual data will be written!"
+	echo
+fi
+
+if [ $commit ]
+then
+	echo
+	echo "Checking out COMMITs"
+	echo
+fi
+
+# 1st install the base Moodle
+echo "==> will install at: $baseurl"
+
+install_moodle $baseurl $moodlebranch
+
+while IFS=, read -r pluginpath version repository branch commitid; do
+  [[ "$pluginpath" != "Plugin-path" ]] && install_plugin $repository $pluginpath $branch $commitid
+
+done < $file
+
+
+# update submodules if present
+#if [ $submodules ]
+#	then
+cd $baseurl
+echo "==> Updating submodules..."
+[ $testing ] || git submodule update --init --recursive
+#fi
+cd $here
+echo " "
+echo "====> DONE after $((`date +%s` - start_time)) seconds!"
+echo " "
+if [ $testing ]
+then
+	echo "TESTING! NO actual data was written!"
+	echo
+fi
+
+

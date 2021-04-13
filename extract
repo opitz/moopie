@@ -1,0 +1,204 @@
+#!/usr/bin/env bash
+
+# script to extract plugin information of QM[plus based on Git information
+# m.opitz@qmul.ac.uk | 2021-03-31
+
+# v.0.7 - work in progress
+# v.0.8 - added options
+
+version=210413
+
+moodle_path=/Users/opitz/workbench/www/qmplus39
+export_file=test.csv
+
+bold=$(tput bold)
+normal=$(tput sgr0)
+
+# get options
+while getopts ":f:lv" x; do
+    case "${x}" in
+        f)
+            filter=${OPTARG}
+            ;;
+        l)
+			logging=1
+			;;
+        v)
+			verbose=1
+			;;
+        *)
+            echo "invalid option - aborting"
+            echo
+            exit 1
+            ;;
+    esac
+done
+shift $((OPTIND-1))
+
+echo " "
+echo "${bold}Moo${normal}dle ${bold}P${normal}lugin ${bold}I${normal}nformation ${bold}E${normal}xtractor - version $version"
+echo "------------------------------------------------------"
+echo " "
+
+if [ ! $1 ]
+then
+	echo 'No path given - aborting!'
+	echo 'Use: extract <path/to/moodle>'
+	echo
+	exit 1
+fi
+moodle_path=$1
+
+if [ ! -d "$moodle_path" ]
+then
+	echo "No Moodle installation found at $moodle_path - aborting!"
+	echo
+	exit 1
+fi
+
+if [ ! -f "$moodle_path/config.php" ]
+then
+	echo "No proper Moodle installation found at $moodle_path - aborting!"
+	echo
+	exit 1
+fi
+
+if [ ! $2 ]
+then
+	export_file=$(basename $moodle_path).csv
+	echo "No explicit export file given - creating standard file $export_file!"
+	echo
+else
+	export_file=$2
+	fileext=${export_file##*.}
+	if [[ $export_file == $fileext ]]
+	then
+		export_file="$export_file.csv"
+	fi
+	if [[ ! $fileext ]]
+	then
+		export_file="$export_file.csv"
+		export_file="${export_file//../.}"
+	fi
+fi
+
+[ $filter ] && echo "==> Filtered by '$filter'"
+
+echo "==> Exporting into $export_file"
+
+logfile="${export_file%.*}.log"
+#[[ $logfile ]] || logfile=${exportfile}
+#logfile="$(basename $moodle_path).log"
+[ $logging ] && echo "==> Logging into $logfile"
+[ $logging ] && echo "Extracting plugin information from $moodle_path at: $(date)" > $logfile
+[ $logging ] && [ $filter ] && echo "==> Filtered by '$filter'" >> $logfile
+[ $logging ] && echo >> $logfile
+
+# Provide a header line for the export file
+echo "Plugin-path,Version,Repository,Branch,Commit" > $export_file
+
+walk_dir () {
+    for plugin_path in "$1"/*; do
+        if [[ -d "$plugin_path" ]]; then
+
+        	if [[ -f "$plugin_path/.git" ]]; then # if there is a '.git' FILE this is a GIT submodule
+            	git_path=$(cat "$plugin_path/.git")
+            	git_path="${git_path//gitdir: }" # remove "gitdir: "
+           		git_path="${git_path//..\/}" # remove all "../" in front of the path
+            	config_path=$moodle_path/$git_path/config
+            	head_path=$moodle_path/$git_path/HEAD
+            	head=$(cat $head_path)
+            	url=''
+
+				if [[ $config_path = *$filter* ]]
+				then
+	            	[[ $verbose ]] && echo "${bold}$plugin_path${normal}"
+	            	[[ $verbose ]] && echo
+
+	            	[[ $logging ]] && echo "Plugin path = $plugin_path" >> $logfile
+	            	[[ $logging ]] && echo >> $logfile
+
+					# get the URL and 
+	            	while IFS= read -r line
+					do
+						if [[ $line = *url* ]] && [[ $url = '' ]] # get only the 1st URL from the config file
+						then
+						    url="${line//$'\t'url = }" #remove leading tab and 'url = '
+						fi
+
+						if [[ $line = *worktree* ]]
+						then
+						    moodle_plugin="${line//$'\t'worktree = }" #remove 'worktree = '
+           					moodle_plugin="${moodle_plugin//..\/}" # remove all "../" in front of the path
+						fi
+					done < "$config_path"
+
+					[[ $verbose ]] && echo "Repository = $url"
+					[[ $logging ]] && echo "Repository = $url" >> $logfile
+					[[ $verbose ]] && echo "Moodle Plugin = $moodle_plugin"
+					[[ $logging ]] && echo "Moodle Plugin = $moodle_plugin" >> $logfile
+
+					# get branch and commit ID
+					if [[ $head = *ref:* ]]
+					then
+						head=${head//ref: }
+						commit=$(cat $moodle_path/$git_path/$head)
+						branch=${head//refs\/heads\/}
+					else
+						commit=$head
+						branch="default"
+					fi
+					[[ $verbose ]] && echo "branch = $branch"
+					[[ $verbose ]] && echo "commit ID = $commit"
+					[[ $logging ]] && echo "branch = $branch" >> $logfile
+					[[ $logging ]] && echo "commit ID = $commit" >> $logfile
+
+					[[ $verbose ]] && echo
+#					cat "$plugin_path/version.php" | grep '$plugin->version'
+					rohversion=$(cat "$plugin_path/version.php" | grep '$plugin->version')
+#					echo $rohversion
+					version=$(echo $rohversion| cut -d'=' -f 2)
+					version=$(echo $version| cut -d';' -f 1)
+					[[ $verbose ]] && echo "Version = $version"
+					[[ $logging ]] && echo "Version = $version" >> $logfile
+
+#WIP start
+					if [[ $(cat "$plugin_path/version.php") = *dependencies* ]]
+					then
+						rawdeps=$(cat "$plugin_path/version.php" | grep '$plugin->dependencies')
+						deps=$(cat "$plugin_path/version.php" | cut -d'=' -f 1)
+						[[ $verbose ]] && echo "Dependencies = $deps"
+					fi
+#WIP end
+
+	            	[[ $verbose ]] && echo && echo "------------------------------------" && echo
+					[[ $logging ]] && echo >> $logfile && echo "------------------------------------" >> $logfile && echo >> $logfile
+
+					[[ $verbose ]] || printf "."
+					((counter=counter+1))
+				    if [ $(expr $counter % 20) = "0" ]; then
+				        echo " $counter"
+				    fi
+
+	            	echo "$moodle_plugin,$version,$url,$branch,$commit" >> $export_file
+				fi
+
+ #           	echo " "
+  #          	cat $head
+   #         	echo " "
+
+   			else
+   				walk_dir "$plugin_path"
+        	fi
+#        else
+#            printf '%s\n' "$plugin_path"
+        fi
+    done
+}
+
+counter=0
+
+walk_dir "$moodle_path"
+
+echo "Extracted information about $counter plugins."
+echo
