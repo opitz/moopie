@@ -4,7 +4,7 @@ This repository consits of two shell scripts and a README file.
 
 ### 1. extract
 
-Syntax: ./extract [ <option> ] <path/to/moodle/installation> [<path/to/pluginfile[.csv]>]
+Syntax: <code>./extract [<option> ] <path/to/moodle/installation> [<path/to/pluginfile[.csv]>]</code>
 
 The path to the moodle installation is mandatory.
 
