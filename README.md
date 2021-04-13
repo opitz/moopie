@@ -1,10 +1,9 @@
-README
+# README
 ======
 
 This repository consits of two shell scripts.
 
-1. extract
-==========
+### 1. extract
 
 Syntax: ./extract [<options>] <path/to/moodle/installation> [<path/to/pluginfile[.csv]>]
 
@@ -19,8 +18,7 @@ Options:
 
 This script will extract information about all installed plugins from GIT information and stores the result in a CSV file.
 
-2. build_moodle
-===============
+### 2. build_moodle
 
 Syntax: ./build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile.csv>
 
