@@ -3,7 +3,7 @@
 # script to create a Moodle set with all plugins
 # m.opitz@qmul.ac.uk | 2021-04-01
 
-version=210413
+version=210415
 
 #----------------------------------------------------------------------------------------------------------
 #
@@ -28,13 +28,14 @@ install_moodle () {
 			echo "ERROR: Could not clone Moodle into $baseurl - aborting!"
 			exit 1
 		fi
-		if [ $2 ] # if a branch has been specified check it out
-		then
-			cd $baseurl
-			git checkout $2
-		fi
-		cd $here
 	fi
+
+	if [ $2 ] # if a branch has been specified check it out
+	then
+		cd $baseurl
+		git checkout $2
+	fi
+	cd $here
 }
 
 #----------------------------------------------------------------------------------------------------------
@@ -60,7 +61,8 @@ install_plugin () {
 	fi
 	plugin_path=$2
 	branch=$3
-	commitid=$4
+	tag=$4
+	commitid=$5
 
 	here=${PWD}
 	cd $baseurl 
@@ -70,36 +72,36 @@ install_plugin () {
 		if [ -d $plugin_path ]
 			then
 			echo "==> re-installing $plugin_path"
-			[ $testing ] || rm -rf $plugin_path
+#			[ $testing ] || rm -rf $plugin_path
 		fi
 	fi
 
 	if [ ! -d $plugin_path ] || [ $force_reinstall ]
 	then
 		echo
-		if [ $3 != 'default' ] # there is a specific branch/tag given
+		if [ $single_repo ]
 			then
-			if [ $single_repo ] # if the single repo switch is present install plugin as code of one big repository
-				then
-				echo "==> clone repository $repository into $baseurl/$plugin_path with branch $3"
-				git clone $repository $plugin_path -b $3
-				[ $testing ] || rm -rf $plugin_path/.git # removing plugins GIT heritage to make it part of the qmplus repository
-			else
-				echo "==> add submodule $repository into $plugin_path with branch $3"
-				[ $testing ] || git submodule add --force -b $3 $repository $plugin_path
+			echo "==> clone repository $repository as $plugin_path"
+			[ $testing ] || git clone $repository $plugin_path
+			if [ $tag ] && [ ! $commit ]
+			then
+				cd $plugin_path
+				[ $testing ] || git checkout $tag
+				cd $baseurl
 			fi
+			[ $testing ] || rm -rf $plugin_path/.git # removing plugins GIT heritage to make it part of the qmplus repository
 		else
-			if [ $single_repo ]
-				then
-				echo "==> clone repository $repository as $plugin_path"
-				[ $testing ] || git clone $repository $plugin_path
-				[ $testing ] || rm -rf $plugin_path/.git #
-			else
-				echo "==> add submodule $repository as $plugin_path"
+			echo "==> add submodule $repository as $plugin_path"
+			[ $testing ] || git submodule add --force $repository $plugin_path
+			if [ $tag ] && [ ! $commit ]
+			then
+				cd $plugin_path
+				[ $testing ] || git checkout $tag
+				cd $baseurl
 				[ $testing ] || git submodule add --force $repository $plugin_path
 			fi
-
 		fi
+		
 		if [ $commit ] && [ $commitid ]
 		then
 			cd $plugin_path
@@ -213,8 +215,8 @@ echo "==> will install at: $baseurl"
 
 install_moodle $baseurl $moodlebranch
 
-while IFS=, read -r pluginpath version repository branch commitid; do
-  [[ "$pluginpath" != "Plugin-path" ]] && install_plugin $repository $pluginpath $branch $commitid
+while IFS=, read -r pluginpath version repository branch tag commitid; do
+  [[ "$pluginpath" != "Plugin-path" ]] && install_plugin $repository $pluginpath $branch $tag $commitid
 
 done < $file
 

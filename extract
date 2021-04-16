@@ -6,7 +6,7 @@
 # v.0.7 - work in progress
 # v.0.8 - added options
 
-version=210413
+version=210415
 
 moodle_path=/Users/opitz/workbench/www/qmplus39
 export_file=test.csv
@@ -56,7 +56,7 @@ then
 	exit 1
 fi
 
-if [ ! -f "$moodle_path/config.php" ]
+if [ ! -f "$moodle_path/course/renderer.php" ]
 then
 	echo "No proper Moodle installation found at $moodle_path - aborting!"
 	echo
@@ -95,7 +95,7 @@ logfile="${export_file%.*}.log"
 [ $logging ] && echo >> $logfile
 
 # Provide a header line for the export file
-echo "Plugin-path,Version,Repository,Branch,Commit" > $export_file
+echo "Plugin-path,Version,Repository,Branch,Tag,Commit" > $export_file
 
 walk_dir () {
     for plugin_path in "$1"/*; do
@@ -148,6 +148,28 @@ walk_dir () {
 						commit=$head
 						branch="default"
 					fi
+
+
+#WIP start
+	            	refs_path=$moodle_path/$git_path/packed-refs
+	            	ref=$(cat $refs_path | grep $commit)
+	            	if [[ $ref ]]
+	            	then
+#	            		echo "===> $commit"
+#	            		echo $ref
+#	            		echo
+	            		A="$(cut -d' ' -f2 <<<$ref)"
+	            		tag=$(basename $A)
+	            	else
+#	            		echo "===> not found: $commit"
+#	            		cat $refs_path
+#	            		echo
+						unset tag
+	            	fi
+
+
+#WIP end
+
 					[[ $verbose ]] && echo "branch = $branch"
 					[[ $verbose ]] && echo "commit ID = $commit"
 					[[ $logging ]] && echo "branch = $branch" >> $logfile
@@ -180,7 +202,7 @@ walk_dir () {
 				        echo " $counter"
 				    fi
 
-	            	echo "$moodle_plugin,$version,$url,$branch,$commit" >> $export_file
+	            	echo "$moodle_plugin,$version,$url,$branch,$tag,$commit" >> $export_file
 				fi
 
  #           	echo " "
