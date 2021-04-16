@@ -3,7 +3,9 @@
 # script to create a Moodle set with all plugins
 # m.opitz@qmul.ac.uk | 2021-04-01
 
-version=210415
+# 210416 - removed branch in favour of tag
+
+version=210416
 
 #----------------------------------------------------------------------------------------------------------
 #
@@ -60,9 +62,8 @@ install_plugin () {
 		exit 1
 	fi
 	plugin_path=$2
-	branch=$3
-	tag=$4
-	commitid=$5
+	tag=$3
+	commitid=$4
 
 	here=${PWD}
 	cd $baseurl 
@@ -215,16 +216,14 @@ echo "==> will install at: $baseurl"
 
 install_moodle $baseurl $moodlebranch
 
-while IFS=, read -r pluginpath version repository branch tag commitid; do
-  [[ "$pluginpath" != "Plugin-path" ]] && install_plugin $repository $pluginpath $branch $tag $commitid
-
+while IFS=, read -r pluginpath version repository tag commitid
+do
+  [[ "$pluginpath" != "Plugin-path" ]] && install_plugin $repository $pluginpath $tag $commitid
 done < $file
 
-
-# update submodules if present
-#if [ $submodules ]
-#	then
+# Finally update all submodules
 cd $baseurl
+echo
 echo "==> Updating submodules..."
 [ $testing ] || git submodule update --init --recursive
 #fi

@@ -5,8 +5,9 @@
 
 # v.0.7 - work in progress
 # v.0.8 - added options
+# 210416 - removed branch in favour of tag
 
-version=210415
+version=210416
 
 moodle_path=/Users/opitz/workbench/www/qmplus39
 export_file=test.csv
@@ -87,15 +88,14 @@ fi
 echo "==> Exporting into $export_file"
 
 logfile="${export_file%.*}.log"
-#[[ $logfile ]] || logfile=${exportfile}
-#logfile="$(basename $moodle_path).log"
+
 [ $logging ] && echo "==> Logging into $logfile"
 [ $logging ] && echo "Extracting plugin information from $moodle_path at: $(date)" > $logfile
 [ $logging ] && [ $filter ] && echo "==> Filtered by '$filter'" >> $logfile
 [ $logging ] && echo >> $logfile
 
 # Provide a header line for the export file
-echo "Plugin-path,Version,Repository,Branch,Tag,Commit" > $export_file
+echo "Plugin-path,Version,Repository,Tag,Commit" > $export_file
 
 walk_dir () {
     for plugin_path in "$1"/*; do
@@ -149,26 +149,16 @@ walk_dir () {
 						branch="default"
 					fi
 
-
-#WIP start
+					# get the current tag
 	            	refs_path=$moodle_path/$git_path/packed-refs
 	            	ref=$(cat $refs_path | grep $commit)
 	            	if [[ $ref ]]
 	            	then
-#	            		echo "===> $commit"
-#	            		echo $ref
-#	            		echo
 	            		A="$(cut -d' ' -f2 <<<$ref)"
 	            		tag=$(basename $A)
 	            	else
-#	            		echo "===> not found: $commit"
-#	            		cat $refs_path
-#	            		echo
 						unset tag
 	            	fi
-
-
-#WIP end
 
 					[[ $verbose ]] && echo "branch = $branch"
 					[[ $verbose ]] && echo "commit ID = $commit"
@@ -176,9 +166,7 @@ walk_dir () {
 					[[ $logging ]] && echo "commit ID = $commit" >> $logfile
 
 					[[ $verbose ]] && echo
-#					cat "$plugin_path/version.php" | grep '$plugin->version'
 					rohversion=$(cat "$plugin_path/version.php" | grep '$plugin->version')
-#					echo $rohversion
 					version=$(echo $rohversion| cut -d'=' -f 2)
 					version=$(echo $version| cut -d';' -f 1)
 					[[ $verbose ]] && echo "Version = $version"
@@ -202,18 +190,11 @@ walk_dir () {
 				        echo " $counter"
 				    fi
 
-	            	echo "$moodle_plugin,$version,$url,$branch,$tag,$commit" >> $export_file
+	            	echo "$moodle_plugin,$version,$url,$tag,$commit" >> $export_file
 				fi
-
- #           	echo " "
-  #          	cat $head
-   #         	echo " "
-
    			else
    				walk_dir "$plugin_path"
         	fi
-#        else
-#            printf '%s\n' "$plugin_path"
         fi
     done
 }
