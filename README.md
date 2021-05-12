@@ -2,9 +2,9 @@
 
 This repository consits of two shell scripts and a README file.
 
-### 1. extract
+### 1. extract_moodle
 
-Syntax: <code>./extract [-f \<arg\> ] [-l] [-v] <path/to/moodle/installation> [<path/to/pluginfile[.csv]>]</code>
+Syntax: <code>./extract_moodle [-f \<arg\> ] [-l] [-v] <path/to/moodle/installation> [<path/to/pluginfile[.csv]>]</code>
 
 The path to the moodle installation is mandatory.
 
@@ -26,7 +26,7 @@ The path to install into is mandatory. If it does not exist it will be created. 
 The path to the plugin file is mandatory.
 
 Options:<br>
-	-b <branch>	: checkout <branch> after cloning core Moodle<br>
+	-b <branch>	: checkout branch <branch> after cloning core Moodle<br>
 	-f 			: force re-isntallation of all plugins from the plugin file<br>
 	-c 			: if a commit ID is given for a plugin checkout to that commit ID<br>
 
