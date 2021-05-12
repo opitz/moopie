@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
 
-# script to extract plugin information of QM[plus based on Git information
+# script to extract plugin information of a Moodle installation based on Git submodule information
 # m.opitz@qmul.ac.uk | 2021-03-31
 
 # v.0.7 - work in progress
 # v.0.8 - added options
 # 210416 - removed branch in favour of tag
 
-version=210416
-
-moodle_path=/Users/opitz/workbench/www/qmplus39
-export_file=test.csv
+version=210512
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -67,7 +64,7 @@ fi
 if [ ! $2 ]
 then
 	export_file=$(basename $moodle_path).csv
-	echo "No explicit export file given - creating standard file $export_file!"
+	echo "No explicit export file given - creating default file $export_file!"
 	echo
 else
 	export_file=$2
@@ -95,7 +92,23 @@ logfile="${export_file%.*}.log"
 [ $logging ] && echo >> $logfile
 
 # Provide a header line for the export file
-echo "Plugin-path,Version,Repository,Tag,Commit" > $export_file
+echo "Name,Path,Repository,Developer,Version,Tag,Commit" > $export_file
+
+# Moodle core data
+moodle_branch=$(cat $moodle_path/.git/HEAD)
+moodle_branch=${moodle_branch//ref: }
+moodle_branch=${moodle_branch//refs\/heads\/}
+
+moodle_version=$(cat $moodle_path/version.php | grep -m 1 '$release')
+moodle_version=${moodle_version//e = }
+moodle_version=$(echo "$moodle_version" | cut -d"'" -f 2) # get the text between two single quotes
+
+moodle_repository=$(cat $moodle_path/.git/config | grep -m 1 url)
+moodle_repository=${moodle_repository//url = }
+moodle_repository="$(echo -e "${moodle_repository}" | sed -e 's/^[[:space:]]*//')" # get rid of leading spaces
+
+echo "Moodle core,/,$moodle_repository,,$moodle_version,$moodle_branch," >> $export_file
+
 
 walk_dir () {
     for plugin_path in "$1"/*; do
@@ -110,7 +123,7 @@ walk_dir () {
             	head=$(cat $head_path)
             	url=''
 
-				if [[ $config_path = *$filter* ]]
+				if [[ $config_path = *$filter* ]] # if the config path contains the filter text do this
 				then
 	            	[[ $verbose ]] && echo "${bold}$plugin_path${normal}"
 	            	[[ $verbose ]] && echo
@@ -133,10 +146,26 @@ walk_dir () {
 						fi
 					done < "$config_path"
 
-					[[ $verbose ]] && echo "Repository = $url"
-					[[ $logging ]] && echo "Repository = $url" >> $logfile
-					[[ $verbose ]] && echo "Moodle Plugin = $moodle_plugin"
-					[[ $logging ]] && echo "Moodle Plugin = $moodle_plugin" >> $logfile
+					# Get the name of the plugin from the english language file
+	                langfile=$(ls $plugin_path/lang/en/ | head -n 1) #take the 1st language file you can find - usually there should be only 1
+	                pluginname=$(cat $plugin_path/lang/en/$langfile | grep -m 1 "'pluginname'")
+
+	                pluginname="${pluginname//\$string\[\'pluginname\'\] = \'}"
+	                #pluginname="${pluginname//\';}"
+                	pluginname=$(echo $pluginname | tr -d "\r\n';")
+
+                	# get the developer from the copyright line in the version.php file of a plugin
+	                versionfile=$plugin_path/version.php
+		            developer=$(cat $plugin_path/version.php | grep -m 1 copyright) # grep the copyright line
+		            developer=${developer//* @copyright}
+		            developer="$(echo -e "${developer}" | sed -e 's/^[[:space:]]*//')" # get rid of leading spaces
+                	#developer=$(echo $developer | tr -d "\r\n';")
+#                	developer=$(echo $developer | sed -e 's/,/\\,/g')
+                	developer="${developer//,/ }"
+                	developer="${developer//  }"
+                	developer="${developer//\*}"
+                	developer=$(echo $developer | tr -d "\r\n")
+
 
 					# get branch and commit ID
 					if [[ $head = *ref:* ]]
@@ -160,16 +189,26 @@ walk_dir () {
 						unset tag
 	            	fi
 
-					[[ $verbose ]] && echo "branch = $branch"
-					[[ $verbose ]] && echo "commit ID = $commit"
-					[[ $logging ]] && echo "branch = $branch" >> $logfile
-					[[ $logging ]] && echo "commit ID = $commit" >> $logfile
-
-					[[ $verbose ]] && echo
+	            	# get the version
 					rohversion=$(cat "$plugin_path/version.php" | grep '$plugin->version')
 					version=$(echo $rohversion| cut -d'=' -f 2)
 					version=$(echo $version| cut -d';' -f 1)
+
+					[[ $verbose ]] && echo "Name = $pluginname"
+					[[ $verbose ]] && echo "Repository = $url"
+					[[ $verbose ]] && echo "Moodle Plugin = $moodle_plugin"
+					[[ $verbose ]] && echo "Developer = $mdeveloper"
+					[[ $verbose ]] && echo "branch = $branch"
+					[[ $verbose ]] && echo "commit ID = $commit"
 					[[ $verbose ]] && echo "Version = $version"
+
+
+					[[ $logging ]] && echo "Name = $pluginname" >> $logfile
+					[[ $logging ]] && echo "Repository = $url" >> $logfile
+					[[ $logging ]] && echo "Moodle Plugin = $moodle_plugin" >> $logfile
+					[[ $logging ]] && echo "Developer = $developer" >> $logfile
+					[[ $logging ]] && echo "branch = $branch" >> $logfile
+					[[ $logging ]] && echo "commit ID = $commit" >> $logfile
 					[[ $logging ]] && echo "Version = $version" >> $logfile
 
 #WIP start
@@ -190,7 +229,7 @@ walk_dir () {
 				        echo " $counter"
 				    fi
 
-	            	echo "$moodle_plugin,$version,$url,$tag,$commit" >> $export_file
+	            	echo "$pluginname,$moodle_plugin,$url,$developer,$version,$tag,$commit" >> $export_file
 				fi
    			else
    				walk_dir "$plugin_path"

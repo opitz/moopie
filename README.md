@@ -31,4 +31,4 @@ Options:<br>
 	-c 			: if a commit ID is given for a plugin checkout to that commit ID<br>
 
 ----------
-version: 210416
+version: 210512

@@ -5,7 +5,7 @@
 
 # 210416 - removed branch in favour of tag
 
-version=210416
+version=210512
 
 #----------------------------------------------------------------------------------------------------------
 #
@@ -16,6 +16,12 @@ version=210416
 install_moodle () {
 	baseurl=$1
 	moodlebranch=$2
+	if [[ $3 ]]
+	then
+		repository=$3
+	else
+		repository=git@github.com:moodle/moodle.git
+	fi
 	here=${PWD}
 
 	if [ -d $baseurl ]
@@ -23,7 +29,7 @@ install_moodle () {
 		echo "HINT: A (Moodle?) installation '$baseurl' already exists - skipping cloning the Moodle base!"
 	else
 		echo "==> cloning Moodle from GitHub into $baseurl"
-		[ $testing ] || git clone git@github.com:moodle/moodle.git $baseurl
+		[ $testing ] || git clone "$repository" $baseurl
 
 		if [ ! -d $baseurl ]
 			then
@@ -214,11 +220,13 @@ fi
 # 1st install the base Moodle
 echo "==> will install at: $baseurl"
 
-install_moodle $baseurl $moodlebranch
-
-while IFS=, read -r pluginpath version repository tag commitid
+#install_moodle $baseurl $moodlebranch
+counter=0
+while IFS=, read -r name pluginpath repository developer version tag commitid
 do
-  [[ "$pluginpath" != "Plugin-path" ]] && install_plugin $repository $pluginpath $tag $commitid
+	[[ $counter = 1 ]] && install_moodle $baseurl $moodlebranch $repository
+	[[ "$repository" != "" ]] && [[ $counter >1 ]] && install_plugin $repository $pluginpath $tag $commitid
+  	((counter++))
 done < $file
 
 # Finally update all submodules
