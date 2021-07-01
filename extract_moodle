@@ -6,8 +6,10 @@
 # v.0.7 - work in progress
 # v.0.8 - added options
 # 210416 - removed branch in favour of tag
+# 210611 - added githuburl
+# 210615 - when there is no pluginname check for filtername
 
-version=210512
+version=210615
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -92,7 +94,7 @@ logfile="${export_file%.*}.log"
 [ $logging ] && echo >> $logfile
 
 # Provide a header line for the export file
-echo "Name,Path,Repository,Developer,Version,Tag,Commit" > $export_file
+echo "Name,Path,Repository,GitHubURL,Developer,Version,Tag,Commit" > $export_file
 
 # Moodle core data
 moodle_branch=$(cat $moodle_path/.git/HEAD)
@@ -107,7 +109,7 @@ moodle_repository=$(cat $moodle_path/.git/config | grep -m 1 url)
 moodle_repository=${moodle_repository//url = }
 moodle_repository="$(echo -e "${moodle_repository}" | sed -e 's/^[[:space:]]*//')" # get rid of leading spaces
 
-echo "Moodle core,/,$moodle_repository,,$moodle_version,$moodle_branch," >> $export_file
+echo "Moodle core,/,$moodle_repository,,,$moodle_version,$moodle_branch," >> $export_file
 
 
 walk_dir () {
@@ -131,12 +133,16 @@ walk_dir () {
 	            	[[ $logging ]] && echo "Plugin path = $plugin_path" >> $logfile
 	            	[[ $logging ]] && echo >> $logfile
 
-					# get the URL and 
+					# get the URL and
 	            	while IFS= read -r line
 					do
 						if [[ $line = *url* ]] && [[ $url = '' ]] # get only the 1st URL from the config file
 						then
 						    url="${line//$'\t'url = }" #remove leading tab and 'url = '
+
+						    # construct the GitHub URL
+						    githuburl="${url//git@github.com:}"
+						    githuburl="https://github.com/${githuburl//.git}"
 						fi
 
 						if [[ $line = *worktree* ]]
@@ -149,8 +155,13 @@ walk_dir () {
 					# Get the name of the plugin from the english language file
 	                langfile=$(ls $plugin_path/lang/en/ | head -n 1) #take the 1st language file you can find - usually there should be only 1
 	                pluginname=$(cat $plugin_path/lang/en/$langfile | grep -m 1 "'pluginname'")
-
-	                pluginname="${pluginname//\$string\[\'pluginname\'\] = \'}"
+                	# if the pluginnname is empty look for a filtername
+                  if [[ $pluginname = "" ]]; then
+                    pluginname=$(cat $plugin_path/lang/en/$langfile | grep -m 1 "'filtername'")
+  	                pluginname="${pluginname//\$string\[\'filtername\'\] = \'}"
+  	              else
+	                  pluginname="${pluginname//\$string\[\'pluginname\'\] = \'}"
+                  fi
 	                #pluginname="${pluginname//\';}"
                 	pluginname=$(echo $pluginname | tr -d "\r\n';")
 
@@ -196,6 +207,7 @@ walk_dir () {
 
 					[[ $verbose ]] && echo "Name = $pluginname"
 					[[ $verbose ]] && echo "Repository = $url"
+					[[ $verbose ]] && echo "GitHub URL = $githuburl"
 					[[ $verbose ]] && echo "Moodle Plugin = $moodle_plugin"
 					[[ $verbose ]] && echo "Developer = $mdeveloper"
 					[[ $verbose ]] && echo "branch = $branch"
@@ -205,6 +217,7 @@ walk_dir () {
 
 					[[ $logging ]] && echo "Name = $pluginname" >> $logfile
 					[[ $logging ]] && echo "Repository = $url" >> $logfile
+					[[ $logging ]] && echo "GitHub URL = $githuburl" >> $logfile
 					[[ $logging ]] && echo "Moodle Plugin = $moodle_plugin" >> $logfile
 					[[ $logging ]] && echo "Developer = $developer" >> $logfile
 					[[ $logging ]] && echo "branch = $branch" >> $logfile
@@ -229,7 +242,7 @@ walk_dir () {
 				        echo " $counter"
 				    fi
 
-	            	echo "$pluginname,$moodle_plugin,$url,$developer,$version,$tag,$commit" >> $export_file
+	            	echo "$pluginname,$moodle_plugin,$url,$githuburl,$developer,$version,$tag,$commit" >> $export_file
 				fi
    			else
    				walk_dir "$plugin_path"
