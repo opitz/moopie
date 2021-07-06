@@ -65,7 +65,7 @@ fi
 
 if [ ! $2 ]
 then
-	export_file=$(basename $moodle_path).csv
+	export_file=$(basename "$moodle_path").csv
 	echo "No explicit export file given - creating default file $export_file!"
 	echo
 else
@@ -195,7 +195,7 @@ walk_dir () {
 	            	if [[ $ref ]]
 	            	then
 	            		A="$(cut -d' ' -f2 <<<$ref)"
-	            		tag=$(basename $A)
+	            		tag=$(basename "$A")
 	            	else
 	            	  tag=$branch
       						# unset tag
