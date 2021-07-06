@@ -153,29 +153,29 @@ walk_dir () {
 					done < "$config_path"
 
 					# Get the name of the plugin from the english language file
-	                langfile=$(ls $plugin_path/lang/en/ | head -n 1) #take the 1st language file you can find - usually there should be only 1
-	                pluginname=$(cat $plugin_path/lang/en/$langfile | grep -m 1 "'pluginname'")
-                	# if the pluginnname is empty look for a filtername
-                  if [[ $pluginname = "" ]]; then
-                    pluginname=$(cat $plugin_path/lang/en/$langfile | grep -m 1 "'filtername'")
-  	                pluginname="${pluginname//\$string\[\'filtername\'\] = \'}"
-  	              else
-	                  pluginname="${pluginname//\$string\[\'pluginname\'\] = \'}"
-                  fi
-	                #pluginname="${pluginname//\';}"
-                	pluginname=$(echo $pluginname | tr -d "\r\n';")
+          langfile=$(ls $plugin_path/lang/en/ | head -n 1) #take the 1st language file you can find - usually there should be only 1
+          pluginname=$(cat $plugin_path/lang/en/$langfile | grep -m 1 "'pluginname'")
+          # if the pluginnname is empty look for a filtername
+          if [[ $pluginname = "" ]]; then
+            pluginname=$(cat $plugin_path/lang/en/$langfile | grep -m 1 "'filtername'")
+            pluginname="${pluginname//\$string\[\'filtername\'\] = \'}"
+          else
+            pluginname="${pluginname//\$string\[\'pluginname\'\] = \'}"
+          fi
+          #pluginname="${pluginname//\';}"
+          pluginname=$(echo $pluginname | tr -d "\r\n';")
 
-                	# get the developer from the copyright line in the version.php file of a plugin
-	                versionfile=$plugin_path/version.php
-		            developer=$(cat $plugin_path/version.php | grep -m 1 copyright) # grep the copyright line
-		            developer=${developer//* @copyright}
-		            developer="$(echo -e "${developer}" | sed -e 's/^[[:space:]]*//')" # get rid of leading spaces
-                	#developer=$(echo $developer | tr -d "\r\n';")
+          # get the developer from the copyright line in the version.php file of a plugin
+          versionfile=$plugin_path/version.php
+          developer=$(cat $plugin_path/version.php | grep -m 1 copyright) # grep the copyright line
+          developer=${developer//* @copyright}
+          developer="$(echo -e "${developer}" | sed -e 's/^[[:space:]]*//')" # get rid of leading spaces
+          #developer=$(echo $developer | tr -d "\r\n';")
 #                	developer=$(echo $developer | sed -e 's/,/\\,/g')
-                	developer="${developer//,/ }"
-                	developer="${developer//  }"
-                	developer="${developer//\*}"
-                	developer=$(echo $developer | tr -d "\r\n")
+          developer="${developer//,/ }"
+          developer="${developer//  }"
+          developer="${developer//\*}"
+          developer=$(echo $developer | tr -d "\r\n")
 
 
 					# get branch and commit ID
@@ -197,7 +197,8 @@ walk_dir () {
 	            		A="$(cut -d' ' -f2 <<<$ref)"
 	            		tag=$(basename $A)
 	            	else
-						unset tag
+	            	  tag=$branch
+      						# unset tag
 	            	fi
 
 	            	# get the version
