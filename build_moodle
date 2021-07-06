@@ -28,7 +28,7 @@ install_moodle () {
 	then
 		echo "HINT: A (Moodle?) installation '$baseurl' already exists - skipping cloning the Moodle base!"
 	else
-		echo "==> cloning Moodle from GitHub into $baseurl"
+		echo "==> Cloning Moodle from GitHub into $baseurl"
 		[ $testing ] || git clone "$repository" $baseurl
 
 		if [ ! -d $baseurl ]
@@ -72,7 +72,7 @@ install_plugin () {
 	commitid=$4
 
 	here=${PWD}
-	cd $baseurl 
+	cd $baseurl
 
 	if [ $force_reinstall ]
 		then
@@ -103,12 +103,13 @@ install_plugin () {
 			if [ $tag ] && [ ! $commit ]
 			then
 				cd $plugin_path
-				[ $testing ] || git checkout $tag
+				[ $testing ] || git checkout $tag > /dev/null
+				echo "==> checking out $plugin_path with $tag"
 				cd $baseurl
 				[ $testing ] || git submodule add --force $repository $plugin_path
 			fi
 		fi
-		
+
 		if [ $commit ] && [ $commitid ]
 		then
 			cd $plugin_path
@@ -123,7 +124,7 @@ install_plugin () {
 
 help () {
 	echo
-	echo 'Usage: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>' 
+	echo 'Usage: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>'
 	echo "Options: -b <branchname> : checkout the given branch after cloning core Moodle"
 	echo
 	exit 0
@@ -166,7 +167,7 @@ here=${PWD}
 if [ ! $1 ]
 then
 	echo 'No install path given - aborting!'
-	echo 'Use: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>' 
+	echo 'Use: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>'
 	echo
 	exit 1
 fi
@@ -175,7 +176,7 @@ baseurl=$1
 if [ ! $2 ]
 then
 	echo 'No plugin file given - aborting!'
-	echo 'Use: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>' 
+	echo 'Use: build_moodle [<options>] <path/to/install/moodle> <path/to/pluginfile>'
 	echo
 	exit 1
 fi
@@ -222,7 +223,7 @@ echo "==> will install at: $baseurl"
 
 #install_moodle $baseurl $moodlebranch
 counter=0
-while IFS=, read -r name pluginpath repository developer version tag commitid
+while IFS=, read -r name pluginpath repository github developer version tag commitid
 do
 	[[ $counter = 1 ]] && install_moodle $baseurl $moodlebranch $repository
 	[[ "$repository" != "" ]] && [[ $counter >1 ]] && install_plugin $repository $pluginpath $tag $commitid
