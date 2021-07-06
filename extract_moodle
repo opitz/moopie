@@ -196,7 +196,8 @@ walk_dir () {
 	            	then
 	            		A="$(cut -d' ' -f2 <<<$ref)"
 	            		tag=$(basename "$A")
-	            		tag=$(echo $tag | tr -dc '[:alnum:]\n\r')
+	            		#tag=$(echo $tag | tr -dc '[:alnum:]\n\r')
+	            		tag=$(echo "${tag//[^[:alnum:]_.-]/}")
 
 	            	else
 	            	  tag=$branch
