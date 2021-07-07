@@ -8,8 +8,9 @@
 # 210416 - removed branch in favour of tag
 # 210611 - added githuburl
 # 210615 - when there is no pluginname check for filtername
+# 210707 - using branch for tag when there is no tag, stripping tag from unwanted chars
 
-version=210615
+version=210707
 
 bold=$(tput bold)
 normal=$(tput sgr0)
@@ -246,7 +247,7 @@ walk_dir () {
 				        echo " $counter"
 				    fi
 
-	            	echo "$pluginname,$moodle_plugin,$url,$githuburl,$developer,$version,$tag,$commit" >> $export_file
+	            	echo "$pluginname,$moodle_plugin,$url,$githuburl,$developer,$version,$tag,$branch,$commit" >> $export_file
 				fi
    			else
    				walk_dir "$plugin_path"

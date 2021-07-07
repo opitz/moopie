@@ -226,7 +226,13 @@ counter=0
 while IFS=, read -r name pluginpath repository github developer version tag commitid
 do
 	[[ $counter = 1 ]] && install_moodle $baseurl $moodlebranch $repository
-	[[ "$repository" != "" ]] && [[ $counter >1 ]] && install_plugin $repository $pluginpath $tag $commitid
+	if [[ $counter = 1 ]]; then
+	  if [[ ! $moodlebranch ]];then
+	    moodlebranch=$tag
+    fi
+	  install_moodle $baseurl $moodlebranch $repository
+  fi
+	[[ "$repository" != "" ]] && [[ $counter -gt 1 ]] && install_plugin $repository $pluginpath $tag $commitid
   	((counter++))
 done < $file
 
