@@ -124,6 +124,7 @@ walk_dir () {
             	config_path=$moodle_path/$git_path/config
             	head_path=$moodle_path/$git_path/HEAD
             	head=$(cat $head_path)
+echo "==> head = $head"
             	url=''
 
 				if [[ $config_path = *$filter* ]] # if the config path contains the filter text do this
@@ -191,21 +192,21 @@ walk_dir () {
 					fi
 
 					# get the current tag
-	            	refs_path=$moodle_path/$git_path/packed-refs
-	            	ref=$(cat $refs_path | grep $commit)
-	            	if [[ $ref ]]
-	            	then
-	            		A="$(cut -d' ' -f2 <<<$ref)"
-	            		tag=$(basename "$A")
-	            		#tag=$(echo $tag | tr -dc '[:alnum:]\n\r')
-	            		tag=$(echo "${tag//[^[:alnum:]_.-]/}")
+          refs_path=$moodle_path/$git_path/packed-refs
+          ref=$(cat $refs_path | grep $commit)
+          if [[ $ref ]]
+          then
+            A="$(cut -d' ' -f2 <<<$ref)"
+            tag=$(basename "$A")
+            #tag=$(echo $tag | tr -dc '[:alnum:]\n\r')
+            tag=$(echo "${tag//[^[:alnum:]_.-]/}")
 
-	            	else
-	            	  tag=$branch
-      						# unset tag
-	            	fi
+          else
+            tag=$branch
+            # unset tag
+          fi
 
-	            	# get the version
+          # get the version
 					rohversion=$(cat "$plugin_path/version.php" | grep '$plugin->version')
 					version=$(echo $rohversion| cut -d'=' -f 2)
 					version=$(echo $version| cut -d';' -f 1)
