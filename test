@@ -153,6 +153,7 @@ walk_dir () {
 					echo "Repository = $url"
 					[[ $verbose ]] && echo "GitHub URL = $githuburl"
 					[[ $verbose ]] && echo "Moodle Plugin = $moodle_plugin"
+					echo "head_path = $head_path"
 					echo "HEAD = $head"
 					echo "branch = $branch"
 					echo "tag = $tag"
