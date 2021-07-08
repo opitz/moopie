@@ -125,12 +125,23 @@ walk_dir () {
         else
             commit=$head
             branch="default"
+            if [ -f $moodle_path/$git_path/FETCH_HEAD ]; then
+              echo "==> trying to find a branch/tag in FETCH_HEAD"
+              rawline=$(cat $moodle_path/$git_path/FETCH_HEAD | grep $commit | head -n 1 ) # use 1st match
+              echo "$rawline"
+              fetch_branch=$(echo $rawline  | awk -F\' '{print $(NF-1)}')
+              echo "fetch_branch = $fetch_branch"
+              if [[ $fetch_branch ]]; then
+                branch=$fetch_branch
+              fi
+            fi
         fi
 
         # get the current tag
           refs_path=$moodle_path/$git_path/packed-refs
           ref=$(cat $refs_path | grep $commit)
 					echo "refs_path = $refs_path"
+#					echo "$(cat $refs_path)"
 					echo "ref = $ref"
           if [[ $ref ]]
           then
