@@ -130,6 +130,8 @@ walk_dir () {
         # get the current tag
           refs_path=$moodle_path/$git_path/packed-refs
           ref=$(cat $refs_path | grep $commit)
+					echo "refs_path = $refs_path"
+					echo "ref = $ref"
           if [[ $ref ]]
           then
             A="$(cut -d' ' -f2 <<<$ref)"
