@@ -139,12 +139,11 @@ walk_dir () {
             tag=$(basename "$A")
             #tag=$(echo $tag | tr -dc '[:alnum:]\n\r')
             tag=$(echo "${tag//[^[:alnum:]_.-]/}")
-
+echo "No branch needed - tag = $tag"
           else
             if [[ $branch = "default" ]]; then
               if [ ! -f $moodle_path/$git_path/FETCH_HEAD ]; then
-                echo "pulling now on ${pwd}"
-                pwd
+                echo "pulling now on $(pwd)"
                 echo $plugin_path
                 hic="$(pwd)"
                 cd $plugin_path
