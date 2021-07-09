@@ -125,16 +125,6 @@ walk_dir () {
         else
             commit=$head
             branch="default"
-            if [ -f $moodle_path/$git_path/FETCH_HEAD ]; then
-              echo "==> trying to find a branch/tag in FETCH_HEAD"
-              rawline=$(cat $moodle_path/$git_path/FETCH_HEAD | grep $commit | head -n 1 ) # use 1st match
-              echo "$rawline"
-              fetch_branch=$(echo $rawline  | awk -F\' '{print $(NF-1)}')
-              echo "fetch_branch = $fetch_branch"
-              if [[ $fetch_branch ]]; then
-                branch=$fetch_branch
-              fi
-            fi
         fi
 
         # get the current tag
@@ -151,6 +141,26 @@ walk_dir () {
             tag=$(echo "${tag//[^[:alnum:]_.-]/}")
 
           else
+            if [[ $branch = "default" ]]; then
+              if [ ! -f $moodle_path/$git_path/FETCH_HEAD ]; then
+                echo "pulling now on ${pwd}"
+                pwd
+                echo $plugin_path
+                hic="$(pwd)"
+                cd $plugin_path
+                git pull
+                cd $hic
+              fi
+              echo "==> trying to find a branch/tag in FETCH_HEAD"
+              cat $moodle_path/$git_path/FETCH_HEAD
+              rawline=$(cat $moodle_path/$git_path/FETCH_HEAD | grep $commit | head -n 1 ) # use 1st match
+              echo "$rawline"
+              fetch_branch=$(echo $rawline  | awk -F\' '{print $(NF-1)}')
+              echo "fetch_branch = $fetch_branch"
+              if [[ $fetch_branch ]]; then
+                branch=$fetch_branch
+              fi
+            fi
             tag=$branch
             # unset tag
           fi
@@ -191,6 +201,12 @@ walk_dir () {
 counter=0
 
 walk_dir "$moodle_path"
+cd $moodle_path
+echo
+echo "==> Switching to $moodle_path"
+echo "==> Updating submodules to restore original commit"
+echo
+git submodule update --init --recursive
 
 echo "Extracted information about $counter plugins."
 echo

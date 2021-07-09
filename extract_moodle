@@ -124,7 +124,6 @@ walk_dir () {
             	config_path=$moodle_path/$git_path/config
             	head_path=$moodle_path/$git_path/HEAD
             	head=$(cat $head_path)
-echo "==> head = $head"
             	url=''
 
 				if [[ $config_path = *$filter* ]] # if the config path contains the filter text do this
@@ -202,6 +201,26 @@ echo "==> head = $head"
             tag=$(echo "${tag//[^[:alnum:]_.-]/}")
 
           else
+            # if no branch or tag can be found try to match one - the 1st - in FETCH_HEAD
+            if [[ $branch = "default" ]]; then
+              # if the submodule has no FETCH_HEAD do a git pull to get it 1st
+              if [ ! -f $moodle_path/$git_path/FETCH_HEAD ]; then
+                # preserve current location, cd into the plugin dir, do the pull and cd back
+                hic="$(pwd)"
+                cd $plugin_path
+                git pull >> /dev/null
+                cd $hic
+              fi
+              [[ $verbose ]] && echo "==> trying to find a branch in FETCH_HEAD"
+              [[ $logging ]] && echo "==> trying to find a branch in FETCH_HEAD" >> $logfile
+              rawline=$(cat $moodle_path/$git_path/FETCH_HEAD | grep $commit | head -n 1 ) # use 1st match
+              if [[ $rawline ]]; then
+                fetch_branch=$(echo $rawline  | awk -F\' '{print $(NF-1)}') # get the branch name between 2 single quotes
+                if [[ $fetch_branch ]]; then
+                  branch=$fetch_branch
+                fi
+              fi
+            fi
             tag=$branch
             # unset tag
           fi
@@ -235,7 +254,7 @@ echo "==> head = $head"
 					then
 						rawdeps=$(cat "$plugin_path/version.php" | grep '$plugin->dependencies')
 						deps=$(cat "$plugin_path/version.php" | cut -d'=' -f 1)
-						[[ $verbose ]] && echo "Dependencies = $deps"
+#						[[ $verbose ]] && echo "Dependencies = $deps"
 					fi
 #WIP end
 
@@ -260,6 +279,13 @@ echo "==> head = $head"
 counter=0
 
 walk_dir "$moodle_path"
+
+cd $moodle_path
+echo
+echo "==> Switching to $moodle_path"
+echo "==> Updating submodules to restore original commit"
+echo
+git submodule update --init --recursive
 
 echo "Extracted information about $counter plugins."
 echo
