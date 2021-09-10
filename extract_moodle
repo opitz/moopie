@@ -267,7 +267,7 @@ walk_dir () {
 				        echo " $counter"
 				    fi
 
-	            	echo "$pluginname,$moodle_plugin,$url,$githuburl,$developer,$version,$tag,$branch,$commit" >> $export_file
+	            	echo "$pluginname,$moodle_plugin,$url,$githuburl,$developer,$version,$tag,$commit" >> $export_file
 				fi
    			else
    				walk_dir "$plugin_path"
